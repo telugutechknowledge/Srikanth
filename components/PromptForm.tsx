@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { QueryState, Law } from '../types';
-import { LAWS_OPTIONS, AUDIENCE_OPTIONS, QUERY_FOCUS_OPTIONS } from '../constants';
+import { LAWS_OPTIONS, AUDIENCE_OPTIONS, QUERY_FOCUS_OPTIONS, OUTPUT_LANGUAGE_OPTIONS } from '../constants';
 import FormSection from './FormSection';
 import SelectInput from './SelectInput';
 import TextAreaInput from './TextAreaInput';
@@ -15,13 +15,62 @@ interface QueryFormProps {
 }
 
 const PromptForm: React.FC<QueryFormProps> = ({ queryState, isLoading, onStateChange, onLawChange, onSubmit }) => {
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  useEffect(() => {
+    // FIX: Cast window to `any` to access browser-specific SpeechRecognition APIs without TypeScript errors.
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      onStateChange('query', (queryState.query ? queryState.query + ' ' : '') + transcript);
+    };
+
+    recognition.onstart = () => {
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+    
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [onStateChange, queryState.query]);
+
+  const handleVoiceClick = () => {
+    if (!recognitionRef.current) {
+      alert("Voice recognition is not supported in your browser.");
+      return;
+    }
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} className="flex flex-col space-y-8">
       <FormSection title="1. Set Your Context" description="Select the relevant laws and your desired level of detail for the explanation.">
         <div className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-3">Legal Codes</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {LAWS_OPTIONS.map(law => (
                 <Checkbox
                   key={law.id}
@@ -33,12 +82,20 @@ const PromptForm: React.FC<QueryFormProps> = ({ queryState, isLoading, onStateCh
               ))}
             </div>
           </div>
-          <SelectInput 
-            label="Explain for a..."
-            value={queryState.audience}
-            onChange={e => onStateChange('audience', e.target.value)}
-            options={AUDIENCE_OPTIONS}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <SelectInput 
+              label="Explain for a..."
+              value={queryState.audience}
+              onChange={e => onStateChange('audience', e.target.value)}
+              options={AUDIENCE_OPTIONS}
+            />
+            <SelectInput 
+              label="Output Language"
+              value={queryState.outputLanguage}
+              onChange={e => onStateChange('outputLanguage', e.target.value)}
+              options={OUTPUT_LANGUAGE_OPTIONS}
+            />
+          </div>
         </div>
       </FormSection>
 
@@ -56,6 +113,8 @@ const PromptForm: React.FC<QueryFormProps> = ({ queryState, isLoading, onStateCh
             value={queryState.query}
             onChange={e => onStateChange('query', e.target.value)}
             rows={6}
+            isListening={isListening}
+            onVoiceClick={handleVoiceClick}
           />
         </div>
       </FormSection>

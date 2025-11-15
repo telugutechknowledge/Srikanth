@@ -1,8 +1,7 @@
-
 import React, { useState, useCallback } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { QueryState, Law } from './types';
-import { LAWS_OPTIONS, AUDIENCE_OPTIONS, QUERY_FOCUS_OPTIONS } from './constants';
+import { LAWS_OPTIONS, AUDIENCE_OPTIONS, QUERY_FOCUS_OPTIONS, OUTPUT_LANGUAGE_OPTIONS } from './constants';
 import Header from './components/Header';
 import PromptForm from './components/PromptForm';
 import PromptPreview from './components/PromptPreview';
@@ -13,6 +12,7 @@ const App: React.FC = () => {
     audience: AUDIENCE_OPTIONS[0],
     query: '',
     queryFocus: QUERY_FOCUS_OPTIONS[0],
+    outputLanguage: OUTPUT_LANGUAGE_OPTIONS[0],
   });
   const [response, setResponse] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -51,8 +51,14 @@ const App: React.FC = () => {
       ? `\n**Specific Focus:** The user is particularly interested in the **${queryState.queryFocus}**. Please ensure your answer emphasizes this aspect.`
       : '';
 
+    const languageInstruction = queryState.outputLanguage === 'Telugu'
+      ? `**Language:** Your entire response **must** be in simple, conversational Telugu. Use words that a layperson can easily understand, not complex legal or literary terms.`
+      : `**Language:** Your entire response **must** be in English.`;
+
     const prompt = `
       You are an expert legal assistant specializing in Indian law. Your task is to provide clear, accurate, and helpful explanations of Indian legal codes and procedures.
+
+      ${languageInstruction}
 
       **Audience:** Explain the concepts for a ${queryState.audience}. Tailor the language, complexity, and depth of your explanation accordingly. For a layperson, use simple terms and avoid jargon. For a legal professional, you can be more technical and detailed.
 
@@ -64,9 +70,20 @@ const App: React.FC = () => {
       "${queryState.query}"
 
       **Your Response:**
-      Provide a comprehensive answer. Structure it for clarity using headings, lists, and bold text. Your response **must** adhere to the following:
-      1.  **Cite Specific Sections:** When discussing any procedure, definition, or legal principle, you must accurately cite the specific section number from the relevant legal code (e.g., Section 154 of BNSS, Section 52 of BSA).
-      2.  **Cite Case Law:** Support your explanation with relevant case law examples and their citations (e.g., *Party A v. Party B*, (Year) SC XXX).
+      Provide a comprehensive, well-structured answer.
+
+      **Formatting Instructions:**
+      - Use Markdown for all formatting.
+      - Use headings (e.g., ## Main Point) to structure the answer.
+      - Use bullet points (- List item) for general lists.
+      - Use **numbered lists (1. First step, 2. Second step)** for procedural steps or sequential information.
+      - Use **blockquotes (> Quoted text)** for direct legal excerpts or important quotes.
+      - Use bold text (**Key Term** or **Section 154 of BNSS**) for key terms and section numbers.
+      - Use italic text (*Case Name v. Other Party*) for case citations.
+
+      **Content Requirements (Strict):**
+      1.  **MANDATORY: Cite Specific Sections:** This is the most important instruction. For every legal point, procedure, or definition you mention, you **must** cite the exact section number from the relevant legal code you are discussing (e.g., "**Section 154 of the BNSS**", "**Section 25 of the Hindu Marriage Act**"). Do not provide general explanations without citing the specific statutory provision. Your response will be considered incorrect if it lacks these specific citations.
+      2.  **Cite Case Law:** Where appropriate, support your explanation with relevant case law examples and their citations in italics (e.g., *Lalita Kumari v. Govt. of U.P.*).
     `;
 
     try {
@@ -102,6 +119,7 @@ const App: React.FC = () => {
               response={response}
               isLoading={isLoading}
               error={error}
+              outputLanguage={queryState.outputLanguage}
             />
           </div>
         </div>

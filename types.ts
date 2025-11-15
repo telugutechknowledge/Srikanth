@@ -3,6 +3,11 @@ export enum Law {
   BNS = 'BNS',
   BNSS = 'BNSS',
   BSA = 'BSA',
+  NI = 'NI',
+  HMA = 'HMA',
+  MVA = 'MVA',
+  DV = 'DV',
+  MWPSC = 'MWPSC',
 }
 
 export interface QueryState {
@@ -10,4 +15,5 @@ export interface QueryState {
   audience: string;
   query: string;
   queryFocus: string;
+  outputLanguage: string;
 }

@@ -1,5 +1,7 @@
 {
   "name": "Indian Law Navigator",
   "description": "An interactive tool to learn and understand Indian legal codes. Ask questions about CPC, BNS, BNSS, and BSA and get clear explanations tailored to your level of expertise, powered by AI.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "microphone"
+  ]
 }
